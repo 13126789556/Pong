@@ -5,138 +5,200 @@
 #include <SFML/System.hpp>
 #include <SFML/OpenGL.hpp>
 #include <SFML/Main.hpp>
-#include "Ball.cpp"
-#include "Paddle.cpp"
+//#include "VectorCalculation.h"
+#include "Ball.h"
+#include "Paddle.h"
+#include "UI.h"
+#include "AudioResource.h"
 using namespace sf;
 
-Vector2f winSize(600, 1000);
-Vector2f p1Size, p2Size, p1Pos, p2Pos;
+Vector2f winSize(750, 900);
+Vector2f p1Size, p2Size, obSize, p1Pos, p2Pos, obPos, bhPos;
 Vector2f ballDir, ballPos;
-float ballRadius, ballSpeed, p1Speed, p2Speed;
-int fps, frameCount;
-
-Vector2f Normalize(Vector2f v) {
-	float temp = sqrt(v.x * v.x + v.y * v.y);
-	return Vector2f(v.x / temp, v.y / temp);
-}
+float ballRadius, ballSpeed, p1Speed, p2Speed, t, obSpeed, bhRadius;
+int fps, frameCount, score1, score2;
+bool isStartMenu;
+bool isAIMode;
+bool isTestMode;
 
 float Magnitude(Vector2f v) {
 	return sqrt(v.x * v.x + v.y * v.y);
 }
 
-void Initial() {
-	winSize = Vector2f(600, 900);
-	p1Size = Vector2f(160, 30);
-	p2Size = Vector2f(160, 30);
-	p1Pos = Vector2f(winSize.x / 2, p1Size.y * 1.5);
-	p2Pos = Vector2f(winSize.x / 2, winSize.y - p1Size.y * 1.5);
-	ballPos = Vector2f(winSize.x / 2, winSize.y / 2);
-	ballDir = Normalize(Vector2f(1.0f, -1.0f));
-	ballSpeed = 450;
-	p1Speed = 400;
-	p2Speed = 400;
-	ballRadius = 25.0f;
+Vector2f Normalize(Vector2f v) {
+	return v / Magnitude(v);
 }
 
-bool Collide(Ball b, Paddle p) {
-	Vector2f p1(p.position.x - p.size.x / 2, p.position.y - p.size.y / 2),
-		p2(p.position.x + p.size.x / 2, p.position.y - p.size.y / 2),
-		p3(p.position.x - p.size.x / 2, p.position.y + p.size.y / 2),
-		p4(p.position.x + p.size.x / 2, p.position.y + p.size.y / 2);
-	if (abs(b.position.x - p.position.x) < b.radius + p.size.x / 2
-		&& abs(b.position.y - p.position.y) < b.radius + p.size.y / 2) {
-		return true;
-	}
-	else if (Magnitude(b.position - p1) < b.radius
-		|| Magnitude(b.position - p2) < b.radius
-		|| Magnitude(b.position - p3) < b.radius
-		|| Magnitude(b.position - p4) < b.radius) {
-		return true;
-	}
-	return false;
+Vector2f Lerp(Vector2f v1, Vector2f v2, float t) {
+	if (t < 0) { t = 0; }
+	if (t > 1) { t = 1; }
+	return v1 * (1 - t) + v2 * t;
+}
+
+
+void Initial() {
+	winSize = Vector2f(750, 900);
+	p1Size = Vector2f(160, 25);
+	p2Size = Vector2f(160, 25);
+	obSize = Vector2f(130, 40);
+	p1Pos = Vector2f(winSize.x / 2, p1Size.y * 1.5);
+	p2Pos = Vector2f(winSize.x / 2, winSize.y - p1Size.y * 1.5);
+	bhPos = Vector2f(winSize.x / 2 + 200, winSize.y / 2 - 200);
+	obPos = Vector2f(obSize.x / 2, winSize.y / 2);
+	ballPos = Vector2f(winSize.x / 2, winSize.y / 2);
+	ballDir = Normalize(Vector2f(0, 1));
+	ballSpeed = 550;
+	p1Speed = 600;
+	p2Speed = 600;
+	obSpeed = 350;
+	ballRadius = 25.0f;
+	bhRadius = 100;
+	score1 = 0;
+	score2 = 0;
+	isStartMenu = true;
+	isAIMode = true;
+	isTestMode = false;
 }
 
 int main()
 {
-	//Initial();
-	RenderWindow window(VideoMode(winSize.x, winSize.y), "Pong");
+	Initial();
+	RenderWindow window(VideoMode(winSize.x, winSize.y), "Pong!");
 
-	Ball ball(Vector2f(winSize.x / 2, winSize.y / 2), 
-		Normalize(Vector2f(1.0f, -1.0f)), 
-		25.0f, 450.f);
-	Paddle player1(Vector2f(winSize.x / 2, 40.0f), 
-		Vector2f(160.f, 30.f), 
-		400.f);
-	Paddle player2(Vector2f(winSize.x / 2, winSize.y - 40.0f), 
-		Vector2f(160.0f, 30.0f), 
-		400.f);
+	Ball ball(ballPos, ballDir, ballRadius, ballSpeed);
+	Paddle player1(p1Pos, p1Size, p1Speed, Color(255, 0, 0, 255));
+	Paddle player2(p2Pos, p2Size, p2Speed, Color(0, 255, 0, 255));
+	Paddle obstacle(obPos, obSize, obSpeed, Color(0, 0, 255, 255));
+	BlackHole blackHole(bhPos, bhRadius);
 
+	AudioResource hit("Hit.wav");
 
-	Font font;
-	font.loadFromFile("arial.ttf");
+	Texture backgroundTexture;
+	backgroundTexture.loadFromFile("Background_Texture.png");
 
-	Text fpsUI;
-	fpsUI.setFont(font);
-	fpsUI.setCharacterSize(20);
-	fpsUI.setPosition(winSize.x - 70, 0);
+	Sprite background;
+	background.setTexture(backgroundTexture);
+
+	UI fpsUI(20, Vector2f(winSize.x - 100, 0));
+	UI score1UI(40, Vector2f(0, winSize.y / 2 - 60));
+	score1UI.content = std::to_string(score1);
+	UI score2UI(40, Vector2f(0, winSize.y / 2 + 10));
+	score2UI.content = std::to_string(score2);
+	UI winUI(50, Vector2f(winSize.x / 2 - 280, winSize.y / 2 - 75));
+	UI menuUI(40, Vector2f(90, winSize.y / 2 - 75));
+	menuUI.content = "Press a to play with AI\n\nPress b to play with human player\n\nPress t to test continuous";
 
 	Time time, deltaTime;
 	Clock clock;
 
 	while (window.isOpen())
 	{
+		//deltatime and fps
 		deltaTime = clock.getElapsedTime();	//time between two frame
 		time += deltaTime;
 		frameCount++;
-		if (time.asSeconds() > 0.25) {	//cauculate fps
-			fps = frameCount * 4;
-			fpsUI.setString("fps:" + std::to_string(fps));
+		if (frameCount >= 10) {	//cauculate fps per 10 frame
+			fps = 100 / time.asSeconds();
+			//fpsUI.setString("fps:" + std::to_string(fps));
 			frameCount = 0;
+		}
+		if (time.asSeconds() >= 0.1) {	//update fps per 0.1s
+			fpsUI.content = "fps:" + std::to_string(fps);
 			time = Time().Zero;
 		}
 		clock.restart();
 
+		//start menu
+		if (isStartMenu) {
+			deltaTime = Time().Zero;
+			if (Keyboard::isKeyPressed(Keyboard::A) && deltaTime == Time().Zero) {
+				player1.isAI = true;
+				isStartMenu = false;
+			}
+			else if (Keyboard::isKeyPressed(Keyboard::B) && deltaTime == Time().Zero) {
+				player1.isAI = false;
+				isStartMenu = false;
+			}
+			else if (Keyboard::isKeyPressed(Keyboard::T) && deltaTime == Time().Zero) {
+			player1.isAI = true;
+			ballSpeed = 10000;
+			ball.speed = 10000;
+			ball.direction = Vector2f(0, 1);
+			obstacle.speed = 0;
+			isStartMenu = false; 
+			}
+		}
 
-		if (winSize.x < ball.position.x + ball.radius) {
+		//if win 
+		if (score1 >= 5) {	//win detection
+			deltaTime = Time().Zero;
+			winUI.content = "			You Lose! \n\n press space to continue";
+		}
+		if (score2 >= 5) {	//win detection
+			deltaTime = Time().Zero;
+			winUI.content = "			You Win! \n\n press space to continue";
+		}
+		if (Keyboard::isKeyPressed(Keyboard::Space) && deltaTime == Time().Zero) {
+			//score1 = score2 = 0;
+			ball.direction = ballDir;
+			player1.position = p1Pos;
+			player2.position = p2Pos;
+			obstacle.position = obPos;
+			score1UI.content = std::to_string(score1 = 0);
+			score2UI.content = std::to_string(score2 = 0);
+			isStartMenu = true;
+		}
+
+		//ball collision detection
+		if (winSize.x < ball.position.x + ball.radius) {	//ball hit right edge
 			ball.position.x = winSize.x - ball.radius;
 			ball.direction.x *= -1;
-		}		
-		if (ball.position.x - ball.radius < 0) {
+			hit.Play();
+		}
+		if (ball.position.x - ball.radius < 0) {	// ball hit left edge
 			ball.position.x = ball.radius;
 			ball.direction.x *= -1;
+			hit.Play();
 		}
-		//if (winSize.y < ball.position.y + ball.radius) {
-		//	ball.position.y = winSize.y - ball.radius;
-		//	ball.direction.y *= -1;
-		//}
-		//if (ball.position.y - ball.radius < 0) {
-		//	ball.position.y = ball.radius;
-		//	ball.direction.y *= -1;
-		//}
-		if (Collide(ball, player1)) {
-			if (abs(ball.position.x - player1.position.x) < player1.size.x / 2) {
-				//ball.position.y = player1.size.y / 2 + player1.position.y;
-				ball.direction.y *= -1;
-			}
-			else if (abs(ball.position.y - player1.position.y) < player1.size.y / 2) {
-				ball.direction.x *= -1;
-			}
-			else {
-				ball.direction.x *= -1;
-				ball.direction.y *= -1;
-			}
+		if (ball.Collision(player1)) {	//ball hit player1's paddle
+			ball.speed += 40.0f;
+			hit.Play();
 		}
-		if (Collide(ball, player2)) {
-			if (abs(ball.position.x - player2.position.x) < player2.size.x / 2) {
-				ball.direction.y *= -1;
-			}
-			else if (abs(ball.position.y - player2.position.y) < player2.size.y / 2) {
-				ball.direction.x *= -1;
-			}
-			else {
-				ball.direction.x *= -1;
-				ball.direction.y *= -1;
-			}
+		if (ball.Collision(player2)) {	//ball hit player2's paddle
+			ball.speed += 40.0f;
+			hit.Play();
+		}		
+		if (ball.Collision(obstacle)) {	//ball hit obstacle
+			hit.Play();
+		}
+		ball.InteractWithBlackHole(blackHole);
+
+		//continuous collision // still something wrong
+		if (ball.ContinuousCollision(player1, deltaTime.asSeconds())) {	//ball hit player1's paddle
+			hit.Play();
+		}
+		if (ball.ContinuousCollision(player2, deltaTime.asSeconds())) {	//ball hit player2's paddle
+			hit.Play();
+		}
+		
+		//ball out of the table
+		if (winSize.y < ball.position.y + ball.radius) {	//ball off bottom edge
+			ball.position = Vector2f(winSize.x / 2, winSize.y / 2);
+			ball.speed = ballSpeed;
+			obstacle.position = obPos;
+			score1 += 1;
+			score1UI.content = std::to_string(score1);
+			//ball.position.y = winSize.y - ball.radius;
+			//ball.direction.y *= -1;
+		}
+		if (ball.position.y - ball.radius < 0) {	//ball off top edge
+			ball.position = Vector2f(winSize.x / 2, winSize.y / 2);
+			ball.speed = ballSpeed;
+			obstacle.position = obPos;
+			score2 += 1;
+			score2UI.content = std::to_string(score2);
+			//ball.position.y = ball.radius;
+			//ball.direction.y *= -1;
 		}
 
 		Event event;
@@ -146,29 +208,72 @@ int main()
 				window.close();
 		}
 
-		if (Keyboard::isKeyPressed(Keyboard::A) && player1.size.x / 2 < player1.position.x) {
-			player1.MoveLeft(deltaTime.asSeconds());
+		//Keyboard input
+		if (player1.isAI == false) {
+			if (Keyboard::isKeyPressed(Keyboard::A) && player1.size.x / 2 < player1.position.x) {
+				player1.MoveLeft(deltaTime.asSeconds());
+			}
+			if (Keyboard::isKeyPressed(Keyboard::D) && player1.position.x < winSize.x - player1.size.x / 2) {
+				player1.MoveRight(deltaTime.asSeconds());
+			}
 		}
-		if (Keyboard::isKeyPressed(Keyboard::D) && player1.position.x < winSize.x - player1.size.x / 2) {
-			player1.MoveRight(deltaTime.asSeconds());
-		}
-
 		if (Keyboard::isKeyPressed(Keyboard::Left) && player2.size.x / 2 < player2.position.x) {
 			player2.MoveLeft(deltaTime.asSeconds());
 		}
 		if (Keyboard::isKeyPressed(Keyboard::Right) && player2.position.x < winSize.x - player2.size.x / 2) {
 			player2.MoveRight(deltaTime.asSeconds());
 		}
-		//for (float i = 0; i < 0.2; i += deltaTime.asSeconds()) {
-		//	ball.speed += 1;
-		//}
+
+		//ai behavior
+		if (player1.isAI == true) {
+			t += deltaTime.asSeconds();
+			if (t > 1) {
+				t = 0;
+			}
+			if (t + 0.2 > ball.position.y / winSize.y	//the ball farther, the paddle move lazier
+				&& ball.direction.y * (ball.position.y - player1.position.y) < 0	//detecte the ball move to ai's side or not
+				&& abs(ball.position.x - player1.position.x) > player1.size.x / 2 - 40) {	//detecte the ball's x axis on ai's paddle or not 
+				player1.UpdateByAI(deltaTime.asSeconds(), ball.position);	//ai move the paddle
+				if (winSize.x - player1.size.x / 2 < player1.position.x) {	//ai hit the left edge of window
+					player1.position.x = winSize.x - player1.size.x / 2;
+				}
+				if (player1.position.x < player1.size.x / 2) {	//ai hit the right edge of window
+					player1.position.x = player1.size.x / 2;
+				}
+			}
+		}
+
+		//update obstacle
+		if (obstacle.position.x <= obstacle.size.x / 2) {
+			obstacle.direction = Vector2f(1, 0);
+		}
+		else if (winSize.x - obstacle.size.x / 2 <= obstacle.position.x) {
+			obstacle.direction = Vector2f(-1, 0);
+		}
+		obstacle.position += obstacle.direction * obstacle.speed * deltaTime.asSeconds();
+
+		//update ball
 		ball.Update(deltaTime.asSeconds());
 
-		window.clear();
+		window.clear(Color(0,0,0,0));
+		//gameobject
+		window.draw(background);
+		blackHole.Draw(window);
 		ball.Draw(window);
 		player1.Draw(window);
 		player2.Draw(window);
-		window.draw(fpsUI);
+		obstacle.Draw(window);
+
+		//ui
+		fpsUI.Draw(window);
+		score1UI.Draw(window);
+		score2UI.Draw(window);
+		if (score1 >= 5 || score2 >= 5) {
+			winUI.Draw(window);
+		}
+		if (isStartMenu) {
+			menuUI.Draw(window);
+		}
 		window.display();
 	}
 

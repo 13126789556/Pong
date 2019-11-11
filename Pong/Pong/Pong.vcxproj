@@ -149,13 +149,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="AudioResource.cpp" />
     <ClCompile Include="Ball.cpp" />
+    <ClCompile Include="BlackHole.cpp" />
     <ClCompile Include="Paddle.cpp" />
     <ClCompile Include="Pong_Main.cpp" />
+    <ClCompile Include="UI.cpp" />
+    <ClCompile Include="VectorCalculation.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="AudioResource.h" />
     <ClInclude Include="Ball.h" />
+    <ClInclude Include="BlackHole.h" />
     <ClInclude Include="Paddle.h" />
+    <ClInclude Include="UI.h" />
+    <ClInclude Include="VectorCalculation.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

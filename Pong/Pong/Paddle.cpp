@@ -1,36 +1,47 @@
-#include <SFML/Graphics.hpp>
-#include <SFML/Window.hpp>
-#include <SFML/Audio.hpp>
-#include <SFML/Network.hpp>
-#include <SFML/System.hpp>
-#include <SFML/OpenGL.hpp>
-#include <SFML/Main.hpp>
-using namespace sf;
+#pragma once
 
-class Paddle {
-public:
-	Vector2f size, position, direction;
-	float speed;
-	RectangleShape paddle;
+#include "Paddle.h"
 
-	Paddle(Vector2f position, Vector2f size, float speed) {
+
+	Paddle::Paddle(Vector2f position, Vector2f size, float speed, Color color) {
 		this->position = position;
 		direction = Vector2f(0, 0);
 		this->size = size;
+		this->originSize = size;
 		this->speed = speed;
+		paddle.setOrigin(size.x / 2, size.y / 2);
+		texture.loadFromFile("Paddle_Texture.png");
+		sprite.setTexture(texture);
+		sprite.setOrigin(90, 25);
+		sprite.setColor(color);
 	}
 
-	void MoveLeft(float dt) {
+	void Paddle::MoveLeft(float dt) {
 		position = position + Vector2f(-1, 0) * speed * dt;
 	}
-	void MoveRight(float dt) {
+	void Paddle::MoveRight(float dt) {
 		position = position + Vector2f(1, 0) * speed * dt;
 	}
 
-	void Draw(RenderWindow& win) {
-		paddle.setSize(size);
-		paddle.setOrigin(size.x / 2, size.y / 2);
-		paddle.setPosition(position);
-		win.draw(paddle);
+	void Paddle::UpdateByAI(float dt, Vector2f bPos) {
+		if (bPos.x < position.x) {
+			MoveLeft(dt);
+		}
+		else
+		{
+			MoveRight(dt);
+		}
 	}
-};
+
+	void Paddle::Draw(RenderWindow& win) {
+		paddle.setSize(size);
+		paddle.setPosition(position);
+		sprite.setScale(size.x / 160, size.y / 30);
+		sprite.setPosition(position);
+		//win.draw(paddle);
+		win.draw(sprite);
+	}
+
+	void Paddle::Collide(RectangleShape r) {
+
+	}
