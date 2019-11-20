@@ -12,20 +12,25 @@ extern Vector2f Lerp(Vector2f v1, Vector2f v2, float t);
 	//float speed, radius;
 	//CircleShape ball;
 
-	Ball::Ball(Vector2f position, Vector2f direction, float radius, float speed) {
+	Ball::Ball(Vector2f position, Vector2f direction, float radius, float velocity) {
 		this->position = position;
 		this->direction = Normalize(direction);
 		this->radius = radius;
 		this->originRadius = radius;
-		this->speed = speed;
+		this->velocity = velocity;
 		ball.setOrigin(radius, radius);
 		texture.loadFromFile("Ball_Texture.png");
 		sprite.setTexture(texture);
 		sprite.setOrigin(30, 30);
+		isContinuousCollided = false;
 	}
 
 	void Ball::Update(float dt) {
-		position = position + speed * direction * dt;
+		if (isContinuousCollided) {
+			isContinuousCollided = false;
+			return;
+		}
+		position = position + velocity * direction * dt;
 	}
 
 
@@ -90,9 +95,10 @@ extern Vector2f Lerp(Vector2f v1, Vector2f v2, float t);
 		if (0 < direction.y && hitPoint.y < p1.y	//ball comes from above
 			&& p1.x < hitPoint.x + -direction.x / -direction.y * (p1.y - hitPoint.y)	//detect if ball will hit the paddle
 			&& hitPoint.x + -direction.x / -direction.y * (p1.y - hitPoint.y) < p2.x) {
-			if (Magnitude(Vector2f(-direction.x / -direction.y * (p1.y - hitPoint.y), p1.y - hitPoint.y)) < Magnitude(-direction * dt * speed)) {	//dectect if ball pass through the paddle
+			if (Magnitude(Vector2f(-direction.x / -direction.y * (p1.y - hitPoint.y), p1.y - hitPoint.y)) < Magnitude(-direction * dt * velocity)) {	//dectect if ball pass through the paddle
 				position += direction * Magnitude(Vector2f(-direction.x / -direction.y * (p1.y - hitPoint.y), p1.y - hitPoint.y));
 				direction = Normalize(Lerp(Normalize(position - p.position), Vector2f(direction.x, -direction.y), 0.3));
+				isContinuousCollided = true; 
 				return true;
 			}
 		}
@@ -100,12 +106,14 @@ extern Vector2f Lerp(Vector2f v1, Vector2f v2, float t);
 		if (direction.y < 0	&& p3.y < hitPoint.y 	//ball comes from below
 			&& p3.x < hitPoint.x + direction.x / direction.y * (p3.y - hitPoint.y)	//detect if ball will hit the paddle
 			&& hitPoint.x + direction.x / direction.y * (p3.y - hitPoint.y) < p4.x) {
-			if (Magnitude(Vector2f(-direction.x / -direction.y * (p3.y - hitPoint.y), p3.y - hitPoint.y)) < Magnitude(-direction * dt * speed)) {	//dectect if ball pass through the paddle
+			if (Magnitude(Vector2f(-direction.x / -direction.y * (p3.y - hitPoint.y), p3.y - hitPoint.y)) < Magnitude(-direction * dt * velocity)) {	//dectect if ball pass through the paddle
 				position += direction * Magnitude(Vector2f(-direction.x / -direction.y * (p3.y - hitPoint.y), p3.y - hitPoint.y));
 				direction = Normalize(Lerp(Normalize(position - p.position), Vector2f(direction.x, -direction.y), 0.3));
+				isContinuousCollided = true;
 				return true;
 			}
 		}
+		isContinuousCollided = false;
 		return false;
 	}
 

@@ -10,6 +10,7 @@
 #include "Paddle.h"
 #include "UI.h"
 #include "AudioResource.h"
+#include "SpriteAnimation.h"
 using namespace sf;
 
 Vector2f winSize(750, 900);
@@ -24,7 +25,7 @@ bool isTestMode;
 float Magnitude(Vector2f v) {
 	return sqrt(v.x * v.x + v.y * v.y);
 }
-
+	
 Vector2f Normalize(Vector2f v) {
 	return v / Magnitude(v);
 }
@@ -43,7 +44,7 @@ void Initial() {
 	obSize = Vector2f(130, 40);
 	p1Pos = Vector2f(winSize.x / 2, p1Size.y * 1.5);
 	p2Pos = Vector2f(winSize.x / 2, winSize.y - p1Size.y * 1.5);
-	bhPos = Vector2f(winSize.x / 2 + 200, winSize.y / 2 - 200);
+	bhPos = Vector2f(winSize.x / 2 + 200, winSize.y / 2 + 200);
 	obPos = Vector2f(obSize.x / 2, winSize.y / 2);
 	ballPos = Vector2f(winSize.x / 2, winSize.y / 2);
 	ballDir = Normalize(Vector2f(0, 1));
@@ -70,6 +71,13 @@ int main()
 	Paddle player2(p2Pos, p2Size, p2Speed, Color(0, 255, 0, 255));
 	Paddle obstacle(obPos, obSize, obSpeed, Color(0, 0, 255, 255));
 	BlackHole blackHole(bhPos, bhRadius);
+	
+	SpriteAnimation anim("Sprite_Sheet_Test.png", 8, 1, 8);
+	anim.speed = 0.3;
+	SpriteAnimation kojima("kojima.png", 3, 3, 8);
+	kojima.position = Vector2f(winSize.x / 2, winSize.y / 2);
+	SpriteAnimation blackhole("blackhole.png", 5, 5, 24);
+	blackhole.position = bhPos;
 
 	AudioResource hit("Hit.wav");
 
@@ -89,24 +97,25 @@ int main()
 	menuUI.content = "Press a to play with AI\n\nPress b to play with human player\n\nPress t to test continuous";
 
 	Time time, deltaTime;
-	Clock clock;
+	Clock fpsClock, fpsUpdate;
 
 	while (window.isOpen())
 	{
 		//deltatime and fps
-		deltaTime = clock.getElapsedTime();	//time between two frame
+		deltaTime = fpsClock.getElapsedTime();	//time between two frame
 		time += deltaTime;
 		frameCount++;
 		if (frameCount >= 10) {	//cauculate fps per 10 frame
-			fps = 100 / time.asSeconds();
+			fps = frameCount / time.asSeconds();
 			//fpsUI.setString("fps:" + std::to_string(fps));
 			frameCount = 0;
-		}
-		if (time.asSeconds() >= 0.1) {	//update fps per 0.1s
-			fpsUI.content = "fps:" + std::to_string(fps);
 			time = Time().Zero;
 		}
-		clock.restart();
+		if (fpsUpdate.getElapsedTime().asSeconds() >= 0.1) {	//update fps per 0.1s
+			fpsUI.content = "fps:" + std::to_string(fps);
+			fpsUpdate.restart();
+		}
+		fpsClock.restart();
 
 		//start menu
 		if (isStartMenu) {
@@ -121,10 +130,10 @@ int main()
 			}
 			else if (Keyboard::isKeyPressed(Keyboard::T) && deltaTime == Time().Zero) {
 			player1.isAI = true;
-			ballSpeed = 10000;
-			ball.speed = 10000;
+			ballSpeed = 100000;
+			ball.velocity = 100000;
 			ball.direction = Vector2f(0, 1);
-			obstacle.speed = 0;
+			obstacle.velocity = 0;
 			isStartMenu = false; 
 			}
 		}
@@ -161,11 +170,11 @@ int main()
 			hit.Play();
 		}
 		if (ball.Collision(player1)) {	//ball hit player1's paddle
-			ball.speed += 40.0f;
+			ball.velocity += 40.0f;
 			hit.Play();
 		}
 		if (ball.Collision(player2)) {	//ball hit player2's paddle
-			ball.speed += 40.0f;
+			ball.velocity += 40.0f;
 			hit.Play();
 		}		
 		if (ball.Collision(obstacle)) {	//ball hit obstacle
@@ -184,7 +193,7 @@ int main()
 		//ball out of the table
 		if (winSize.y < ball.position.y + ball.radius) {	//ball off bottom edge
 			ball.position = Vector2f(winSize.x / 2, winSize.y / 2);
-			ball.speed = ballSpeed;
+			ball.velocity = ballSpeed;
 			obstacle.position = obPos;
 			score1 += 1;
 			score1UI.content = std::to_string(score1);
@@ -193,7 +202,7 @@ int main()
 		}
 		if (ball.position.y - ball.radius < 0) {	//ball off top edge
 			ball.position = Vector2f(winSize.x / 2, winSize.y / 2);
-			ball.speed = ballSpeed;
+			ball.velocity = ballSpeed;
 			obstacle.position = obPos;
 			score2 += 1;
 			score2UI.content = std::to_string(score2);
@@ -230,7 +239,7 @@ int main()
 			if (t > 1) {
 				t = 0;
 			}
-			if (t + 0.2 > ball.position.y / winSize.y	//the ball farther, the paddle move lazier
+			if (t + 0.05 > ball.position.y / winSize.y	//the ball farther, the paddle move lazier // t to control
 				&& ball.direction.y * (ball.position.y - player1.position.y) < 0	//detecte the ball move to ai's side or not
 				&& abs(ball.position.x - player1.position.x) > player1.size.x / 2 - 40) {	//detecte the ball's x axis on ai's paddle or not 
 				player1.UpdateByAI(deltaTime.asSeconds(), ball.position);	//ai move the paddle
@@ -250,19 +259,28 @@ int main()
 		else if (winSize.x - obstacle.size.x / 2 <= obstacle.position.x) {
 			obstacle.direction = Vector2f(-1, 0);
 		}
-		obstacle.position += obstacle.direction * obstacle.speed * deltaTime.asSeconds();
+		obstacle.position += obstacle.direction * obstacle.velocity * deltaTime.asSeconds();
 
 		//update ball
 		ball.Update(deltaTime.asSeconds());
 
+		//test
+		anim.Update(deltaTime.asSeconds());
+		kojima.Update(deltaTime.asSeconds());
+		blackhole.Update(deltaTime.asSeconds());
+
 		window.clear(Color(0,0,0,0));
 		//gameobject
 		window.draw(background);
-		blackHole.Draw(window);
+		//kojima.Draw(window);
+		blackhole.Draw(window);
 		ball.Draw(window);
 		player1.Draw(window);
 		player2.Draw(window);
 		obstacle.Draw(window);
+
+		//test
+		//anim.Draw(window);
 
 		//ui
 		fpsUI.Draw(window);

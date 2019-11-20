@@ -154,6 +154,7 @@
     <ClCompile Include="BlackHole.cpp" />
     <ClCompile Include="Paddle.cpp" />
     <ClCompile Include="Pong_Main.cpp" />
+    <ClCompile Include="SpriteAnimation.cpp" />
     <ClCompile Include="UI.cpp" />
     <ClCompile Include="VectorCalculation.cpp" />
   </ItemGroup>
@@ -162,6 +163,7 @@
     <ClInclude Include="Ball.h" />
     <ClInclude Include="BlackHole.h" />
     <ClInclude Include="Paddle.h" />
+    <ClInclude Include="SpriteAnimation.h" />
     <ClInclude Include="UI.h" />
     <ClInclude Include="VectorCalculation.h" />
   </ItemGroup>

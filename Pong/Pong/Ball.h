@@ -14,12 +14,13 @@ class Ball
 {
 public:
 	Vector2f position, direction;
-	float speed, radius, originRadius;
+	float velocity, radius, originRadius;
 	CircleShape ball;
 	Texture texture;
 	Sprite sprite;
+	bool isContinuousCollided;
 
-	Ball(Vector2f position, Vector2f direction, float radius, float speed);
+	Ball(Vector2f position, Vector2f direction, float radius, float velocity);
 	void Update(float dt);
 	bool Collision(Paddle p);
 	bool ContinuousCollision(Paddle p, float dt);

@@ -11,7 +11,7 @@ using namespace sf;
 class Paddle {
 public:
 	Vector2f size, originSize, position, direction;
-	float speed;
+	float velocity;
 	RectangleShape paddle;
 	bool isAI = false; 
 	Texture texture;
