@@ -130,8 +130,8 @@ int main()
 			}
 			else if (Keyboard::isKeyPressed(Keyboard::T) && deltaTime == Time().Zero) {
 			player1.isAI = true;
-			ballSpeed = 100000;
-			ball.velocity = 100000;
+			ballSpeed = 10000;
+			ball.velocity = 10000;
 			ball.direction = Vector2f(0, 1);
 			obstacle.velocity = 0;
 			isStartMenu = false; 
@@ -182,7 +182,7 @@ int main()
 		}
 		ball.InteractWithBlackHole(blackHole);
 
-		//continuous collision // still something wrong
+		//continuous collision
 		if (ball.ContinuousCollision(player1, deltaTime.asSeconds())) {	//ball hit player1's paddle
 			hit.Play();
 		}
@@ -239,7 +239,7 @@ int main()
 			if (t > 1) {
 				t = 0;
 			}
-			if (t + 0.05 > ball.position.y / winSize.y	//the ball farther, the paddle move lazier // t to control
+			if (t + 0.02 > ball.position.y / winSize.y	//the ball farther, the paddle move lazier // t to controll
 				&& ball.direction.y * (ball.position.y - player1.position.y) < 0	//detecte the ball move to ai's side or not
 				&& abs(ball.position.x - player1.position.x) > player1.size.x / 2 - 40) {	//detecte the ball's x axis on ai's paddle or not 
 				player1.UpdateByAI(deltaTime.asSeconds(), ball.position);	//ai move the paddle
@@ -272,7 +272,6 @@ int main()
 		window.clear(Color(0,0,0,0));
 		//gameobject
 		window.draw(background);
-		//kojima.Draw(window);
 		blackhole.Draw(window);
 		ball.Draw(window);
 		player1.Draw(window);
@@ -281,6 +280,7 @@ int main()
 
 		//test
 		//anim.Draw(window);
+		//kojima.Draw(window);
 
 		//ui
 		fpsUI.Draw(window);
